@@ -22,43 +22,31 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    // ===== INSCRIPTION =====
+    // ── INSCRIPTION ──────────────────────────────────────────
     public AuthResponse register(RegisterRequest request) {
-
-        // Vérifier si l'email existe déjà
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Cet email est déjà utilisé !");
         }
 
-        // Créer le nouvel utilisateur
         User user = User.builder()
                 .nom(request.getNom())
                 .prenom(request.getPrenom())
                 .email(request.getEmail())
                 .telephone(request.getTelephone())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole() != null ? request.getRole() : Role.CLIENT) // rôle par défaut: CLIENT
+                .role(request.getRole())
+                .activated(true)
+                .specialite(request.getSpecialite())
+                .nombresExperiences(request.getNombresExperiences())
                 .build();
 
         userRepository.save(user);
-
-        // Générer le token JWT
         String token = jwtService.generateToken(user);
-
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .nom(user.getNom())
-                .prenom(user.getPrenom())
-                .role(user.getRole())
-                .message("Inscription réussie !")
-                .build();
+        return buildResponse(user, token, "Compte créé avec succès !");
     }
 
-    // ===== CONNEXION =====
+    // ── CONNEXION ────────────────────────────────────────────
     public AuthResponse login(LoginRequest request) {
-
-        // Authentifier l'utilisateur
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -66,20 +54,25 @@ public class AuthService {
                 )
         );
 
-        // Récupérer l'utilisateur
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Générer le token JWT
         String token = jwtService.generateToken(user);
+        return buildResponse(user, token, "Connexion réussie !");
+    }
 
+    // ── HELPER ───────────────────────────────────────────────
+    private AuthResponse buildResponse(User user, String token, String message) {
         return AuthResponse.builder()
                 .token(token)
                 .email(user.getEmail())
                 .nom(user.getNom())
                 .prenom(user.getPrenom())
                 .role(user.getRole())
-                .message("Connexion réussie !")
+                .activated(user.isActivated())
+                .specialite(user.getSpecialite())
+                .nombresExperiences(user.getNombresExperiences())
+                .message(message)
                 .build();
     }
 }

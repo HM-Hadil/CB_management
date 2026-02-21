@@ -15,5 +15,8 @@ public class AuthResponse {
     private String nom;
     private String prenom;
     private Role role;
+    private boolean activated;          // ← ajouter
+    private String specialite;          // ← ajouter
+    private Integer nombresExperiences; // ← ajouter
     private String message;
 }
