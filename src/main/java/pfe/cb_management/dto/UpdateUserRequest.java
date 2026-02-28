@@ -3,6 +3,7 @@ package pfe.cb_management.dto;
 import jakarta.validation.constraints.Email;
 import lombok.*;
 import pfe.cb_management.enums.Role;
+import pfe.cb_management.enums.Specialite;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UpdateUserRequest {
@@ -13,6 +14,6 @@ public class UpdateUserRequest {
     private String telephone;
     private String password;       // nullable → ne change que si fourni
     private Role role;
-    private String specialite;
+    private Specialite specialite;
     private Integer nombresExperiences;
 }

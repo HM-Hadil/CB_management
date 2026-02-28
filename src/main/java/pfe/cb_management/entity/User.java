@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import pfe.cb_management.enums.Role;
+import pfe.cb_management.enums.Specialite;
 
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +42,8 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean activated = true;
 
-    private String specialite;          // ex: "Coiffure", "Maquillage", "Spa"
+    @Enumerated(EnumType.STRING)
+    private Specialite specialite;
 
     private Integer nombresExperiences;
 

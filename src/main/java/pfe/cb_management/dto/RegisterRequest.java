@@ -3,6 +3,7 @@ package pfe.cb_management.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import pfe.cb_management.enums.Role;
+import pfe.cb_management.enums.Specialite;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RegisterRequest {
@@ -27,6 +28,6 @@ public class RegisterRequest {
     private Role role;
 
     // Spécifiques employé (optionnels)
-    private String specialite;
+    private Specialite specialite;
     private Integer nombresExperiences;
 }

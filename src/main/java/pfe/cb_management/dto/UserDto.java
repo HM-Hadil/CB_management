@@ -2,6 +2,7 @@ package pfe.cb_management.dto;
 
 import lombok.*;
 import pfe.cb_management.enums.Role;
+import pfe.cb_management.enums.Specialite;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserDto {
@@ -12,6 +13,6 @@ public class UserDto {
     private String telephone;
     private Role role;
     private boolean activated;
-    private String specialite;
+    private Specialite specialite;
     private Integer nombresExperiences;
 }

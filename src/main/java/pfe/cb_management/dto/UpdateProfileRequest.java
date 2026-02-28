@@ -2,12 +2,13 @@ package pfe.cb_management.dto;
 
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import pfe.cb_management.enums.Specialite;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UpdateProfileRequest {
 
     private String telephone;
-    private String specialite;
+    private Specialite specialite;
     private Integer nombresExperiences;
     private String nom;
     private String prenom;
