@@ -108,6 +108,27 @@ public class RendezVousService {
         rendezVousRepository.deleteById(id);
     }
 
+    // ── Terminer un rendez-vous (action employé) ──────────────
+    @Transactional
+    public RendezVousResponse terminerRendezVous(String emailEmployee, Long rdvId) {
+        User employee = findUserByEmail(emailEmployee);
+        RendezVous rdv = findRdv(rdvId);
+
+        boolean estConcerne = rdv.getServices().stream()
+                .anyMatch(s -> s.getEmployee() != null && s.getEmployee().getId().equals(employee.getId()));
+        if (!estConcerne) {
+            throw new RuntimeException("Ce rendez-vous ne vous est pas assigné.");
+        }
+        if (rdv.getStatut() == StatutRendezVous.ANNULE) {
+            throw new RuntimeException("Impossible de terminer un rendez-vous annulé.");
+        }
+        if (rdv.getStatut() == StatutRendezVous.TERMINE) {
+            throw new RuntimeException("Ce rendez-vous est déjà terminé.");
+        }
+        rdv.setStatut(StatutRendezVous.TERMINE);
+        return toResponse(rendezVousRepository.save(rdv));
+    }
+
     // ── Rendez-vous de l'employé connecté ────────────────────
     public List<RendezVousResponse> getMesRendezVous(String emailEmployee) {
         User employee = findUserByEmail(emailEmployee);

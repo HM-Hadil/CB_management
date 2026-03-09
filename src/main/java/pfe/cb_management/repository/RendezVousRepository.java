@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import pfe.cb_management.entity.RendezVous;
 import pfe.cb_management.enums.StatutRendezVous;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
@@ -37,4 +38,7 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             @Param("employeeId") Long employeeId,
             @Param("statut") StatutRendezVous statut
     );
+
+    // Rendez-vous expirés (dateFin passée) dont le statut n'est pas encore TERMINE ou ANNULE
+    List<RendezVous> findByDateFinBeforeAndStatutNotIn(LocalDateTime dateFin, List<StatutRendezVous> statuts);
 }
