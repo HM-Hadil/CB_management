@@ -1,6 +1,7 @@
 package pfe.cb_management.dto;
 
 import lombok.*;
+import pfe.cb_management.enums.StatutMariee;
 import pfe.cb_management.enums.StatutRendezVous;
 import pfe.cb_management.enums.TypeClient;
 
@@ -21,10 +22,11 @@ public class RendezVousResponse {
     // Planification
     private LocalDateTime dateDebut;
     private LocalDateTime dateFin;
-    private Integer nbHeures;
+    private Integer dureeMinutes;
 
     // Statut
     private StatutRendezVous statut;
+    private StatutMariee statutMariee;
 
     // Réceptionniste
     private Long createdById;

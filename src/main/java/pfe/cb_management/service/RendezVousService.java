@@ -34,16 +34,17 @@ public class RendezVousService {
                 .orElseThrow(() -> new RuntimeException("Réceptionniste introuvable."));
 
         LocalDateTime dateDebut = request.getDateDebut();
-        LocalDateTime dateFin = dateDebut.plusHours(request.getNbHeures());
+        LocalDateTime dateFin = dateDebut.plusMinutes(request.getDureeMinutes());
 
         RendezVous rdv = RendezVous.builder()
                 .nomClient(request.getNomClient())
                 .prenomClient(request.getPrenomClient())
                 .telephoneClient(request.getTelephoneClient())
                 .typeClient(request.getTypeClient())
+                .statutMariee(request.getStatutMariee())
                 .dateDebut(dateDebut)
                 .dateFin(dateFin)
-                .nbHeures(request.getNbHeures())
+                .dureeMinutes(request.getDureeMinutes())
                 .statut(StatutRendezVous.EN_ATTENTE)
                 .createdBy(receptionniste)
                 .build();
@@ -75,15 +76,16 @@ public class RendezVousService {
         }
 
         LocalDateTime dateDebut = request.getDateDebut();
-        LocalDateTime dateFin = dateDebut.plusHours(request.getNbHeures());
+        LocalDateTime dateFin = dateDebut.plusMinutes(request.getDureeMinutes());
 
         rdv.setNomClient(request.getNomClient());
         rdv.setPrenomClient(request.getPrenomClient());
         rdv.setTelephoneClient(request.getTelephoneClient());
         rdv.setTypeClient(request.getTypeClient());
+        rdv.setStatutMariee(request.getStatutMariee());
         rdv.setDateDebut(dateDebut);
         rdv.setDateFin(dateFin);
-        rdv.setNbHeures(request.getNbHeures());
+        rdv.setDureeMinutes(request.getDureeMinutes());
 
         rdv.getServices().clear();
         rdv.getServices().addAll(buildServices(request.getServices(), rdv, request.getTypeClient()));
@@ -106,6 +108,30 @@ public class RendezVousService {
             throw new RuntimeException("Rendez-vous introuvable avec l'id : " + id);
         }
         rendezVousRepository.deleteById(id);
+    }
+
+    // ── Commencer un rendez-vous (action employé) ─────────────
+    @Transactional
+    public RendezVousResponse commencerRendezVous(String emailEmployee, Long rdvId) {
+        User employee = findUserByEmail(emailEmployee);
+        RendezVous rdv = findRdv(rdvId);
+
+        boolean estConcerne = rdv.getServices().stream()
+                .anyMatch(s -> s.getEmployee() != null && s.getEmployee().getId().equals(employee.getId()));
+        if (!estConcerne) {
+            throw new RuntimeException("Ce rendez-vous ne vous est pas assigné.");
+        }
+        if (rdv.getStatut() == StatutRendezVous.EN_COURS) {
+            throw new RuntimeException("Ce rendez-vous est déjà en cours.");
+        }
+        if (rdv.getStatut() == StatutRendezVous.TERMINE) {
+            throw new RuntimeException("Ce rendez-vous est déjà terminé.");
+        }
+        if (rdv.getStatut() == StatutRendezVous.ANNULE) {
+            throw new RuntimeException("Impossible de commencer un rendez-vous annulé.");
+        }
+        rdv.setStatut(StatutRendezVous.EN_COURS);
+        return toResponse(rendezVousRepository.save(rdv));
     }
 
     // ── Terminer un rendez-vous (action employé) ──────────────
@@ -156,8 +182,8 @@ public class RendezVousService {
     // ── Employés disponibles ──────────────────────────────────
     public List<UserDto> getEmployesDisponibles(Specialite specialite,
                                                 LocalDateTime dateDebut,
-                                                Integer nbHeures) {
-        LocalDateTime dateFin = dateDebut.plusHours(nbHeures);
+                                                Integer dureeMinutes) {
+        LocalDateTime dateFin = dateDebut.plusMinutes(dureeMinutes);
         return userRepository.findAvailableEmployees(specialite, dateDebut, dateFin)
                 .stream()
                 .map(this::toUserDto)
@@ -167,9 +193,9 @@ public class RendezVousService {
     // ── Employés disponibles par TypeService (spécialité dérivée automatiquement) ──
     public List<UserDto> getEmployesDisponiblesParTypeService(TypeService typeService,
                                                               LocalDateTime dateDebut,
-                                                              Integer nbHeures) {
+                                                              Integer dureeMinutes) {
         Specialite specialite = typeService.getSpecialite();
-        LocalDateTime dateFin = dateDebut.plusHours(nbHeures);
+        LocalDateTime dateFin = dateDebut.plusMinutes(dureeMinutes);
         return userRepository.findAvailableEmployees(specialite, dateDebut, dateFin)
                 .stream()
                 .map(this::toUserDto)
@@ -245,6 +271,9 @@ public class RendezVousService {
                     .rendezVous(rdv)
                     .employee(employee)  // null accepté pour MARIAGE
                     .typeService(req.getTypeService())
+                    .datePrevue(req.getDatePrevue())
+                    .dureeService(req.getDureeService())
+                    .codeRobe(req.getCodeRobe())
                     .build();
         }).toList();
     }
@@ -260,9 +289,10 @@ public class RendezVousService {
                 .prenomClient(rdv.getPrenomClient())
                 .telephoneClient(rdv.getTelephoneClient())
                 .typeClient(rdv.getTypeClient())
+                .statutMariee(rdv.getStatutMariee())
                 .dateDebut(rdv.getDateDebut())
                 .dateFin(rdv.getDateFin())
-                .nbHeures(rdv.getNbHeures())
+                .dureeMinutes(rdv.getDureeMinutes())
                 .statut(rdv.getStatut())
                 .createdById(rdv.getCreatedBy().getId())
                 .createdByNom(rdv.getCreatedBy().getNom())
@@ -277,6 +307,9 @@ public class RendezVousService {
         ServiceRendezVousDto dto = new ServiceRendezVousDto();
         dto.setId(srv.getId());
         dto.setTypeService(srv.getTypeService());
+        dto.setDatePrevue(srv.getDatePrevue());
+        dto.setDureeService(srv.getDureeService());
+        dto.setCodeRobe(srv.getCodeRobe());
         if (srv.getEmployee() != null) {
             dto.setEmployeeId(srv.getEmployee().getId());
             dto.setEmployeeNom(srv.getEmployee().getNom());

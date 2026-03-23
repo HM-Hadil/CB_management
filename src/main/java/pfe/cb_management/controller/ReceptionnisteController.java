@@ -16,8 +16,10 @@ import pfe.cb_management.dto.*;
 import pfe.cb_management.enums.Specialite;
 import pfe.cb_management.enums.StatutRendezVous;
 import pfe.cb_management.enums.TypeService;
+import pfe.cb_management.service.PresenceService;
 import pfe.cb_management.service.RendezVousService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +32,7 @@ import java.util.List;
 public class ReceptionnisteController {
 
     private final RendezVousService rendezVousService;
+    private final PresenceService presenceService;
 
     // ── CRÉER un rendez-vous ──────────────────────────────────
     @PostMapping("/rendez-vous")
@@ -92,10 +95,10 @@ public class ReceptionnisteController {
     public ResponseEntity<List<UserDto>> getEmployesDisponibles(
             @RequestParam Specialite specialite,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
-            @RequestParam Integer nbHeures) {
+            @RequestParam Integer dureeMinutes) {
 
         return ResponseEntity.ok(
-                rendezVousService.getEmployesDisponibles(specialite, dateDebut, nbHeures));
+                rendezVousService.getEmployesDisponibles(specialite, dateDebut, dureeMinutes));
     }
 
     // ── EMPLOYÉS PAR SPÉCIALITÉ ───────────────────────────────
@@ -118,10 +121,37 @@ public class ReceptionnisteController {
     public ResponseEntity<List<UserDto>> getEmployesDisponiblesParService(
             @RequestParam TypeService typeService,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
-            @RequestParam Integer nbHeures) {
+            @RequestParam Integer dureeMinutes) {
 
         return ResponseEntity.ok(
-                rendezVousService.getEmployesDisponiblesParTypeService(typeService, dateDebut, nbHeures));
+                rendezVousService.getEmployesDisponiblesParTypeService(typeService, dateDebut, dureeMinutes));
+    }
+
+    // ── PRÉSENCE ──────────────────────────────────────────────────
+    @GetMapping("/presence")
+    @Operation(summary = "Obtenir la présence de tous les employés pour une date donnée")
+    public ResponseEntity<List<PresenceResponse>> getPresence(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate targetDate = (date != null) ? date : LocalDate.now();
+        return ResponseEntity.ok(presenceService.getPresenceForDate(targetDate));
+    }
+
+    @PostMapping("/presence/{employeeId}/arrivee")
+    @Operation(summary = "Marquer l'arrivée d'un employé (date = aujourd'hui)")
+    public ResponseEntity<PresenceResponse> marquerArrivee(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(presenceService.marquerArrivee(employeeId));
+    }
+
+    @PostMapping("/presence/{employeeId}/depart")
+    @Operation(summary = "Marquer le départ d'un employé (date = aujourd'hui)")
+    public ResponseEntity<PresenceResponse> marquerDepart(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(presenceService.marquerDepart(employeeId));
+    }
+
+    @PostMapping("/presence/{employeeId}/terminer")
+    @Operation(summary = "Terminer la journée d'un employé (statut → TERMINE)")
+    public ResponseEntity<PresenceResponse> terminer(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(presenceService.terminer(employeeId));
     }
 
     // ── ENUM HELPERS (utiles pour le front) ───────────────────

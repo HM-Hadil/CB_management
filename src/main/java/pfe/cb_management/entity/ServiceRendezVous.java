@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import pfe.cb_management.enums.TypeService;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "service_rendez_vous")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -25,4 +27,14 @@ public class ServiceRendezVous {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TypeService typeService;
+
+    // ── Champs spécifiques aux services mariée ─────────────
+    /** Date/heure propre à ce service (optionnel, remplace la date globale du RDV) */
+    private LocalDateTime datePrevue;
+
+    /** Durée en minutes propre à ce service (optionnel) */
+    private Integer dureeService;
+
+    /** Code robe (optionnel, services mariée uniquement) */
+    private String codeRobe;
 }

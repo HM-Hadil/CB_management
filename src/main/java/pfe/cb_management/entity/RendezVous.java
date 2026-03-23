@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import pfe.cb_management.enums.StatutMariee;
 import pfe.cb_management.enums.StatutRendezVous;
 import pfe.cb_management.enums.TypeClient;
 
@@ -41,13 +42,17 @@ public class RendezVous {
     private LocalDateTime dateFin;
 
     @Column(nullable = false)
-    private Integer nbHeures;
+    private Integer dureeMinutes;
 
     // ── Statut ────────────────────────────────────────────
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private StatutRendezVous statut = StatutRendezVous.EN_ATTENTE;
+
+    // ── Statut mariée (uniquement pour TypeClient.MARIAGE) ─
+    @Enumerated(EnumType.STRING)
+    private StatutMariee statutMariee;
 
     // ── Réceptionniste qui a créé le rendez-vous ──────────
     @ManyToOne(fetch = FetchType.LAZY)

@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import pfe.cb_management.enums.TypeService;
 
+import java.time.LocalDateTime;
+
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ServiceRendezVousRequest {
 
@@ -12,4 +14,9 @@ public class ServiceRendezVousRequest {
 
     @NotNull(message = "Le type de service est obligatoire")
     private TypeService typeService;
+
+    // Champs spécifiques aux services mariée (optionnels)
+    private LocalDateTime datePrevue;
+    private Integer dureeService;
+    private String codeRobe;
 }

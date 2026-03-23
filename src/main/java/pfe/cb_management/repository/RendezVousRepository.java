@@ -41,4 +41,14 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
 
     // Rendez-vous expirés (dateFin passée) dont le statut n'est pas encore TERMINE ou ANNULE
     List<RendezVous> findByDateFinBeforeAndStatutNotIn(LocalDateTime dateFin, List<StatutRendezVous> statuts);
+
+    // Nombre de services par cliente (RDV terminés uniquement)
+    @Query("""
+            SELECT rv.nomClient, rv.prenomClient, rv.telephoneClient, COUNT(srv.id), MIN(rv.dateDebut)
+            FROM RendezVous rv
+            JOIN rv.services srv
+            WHERE rv.statut = 'TERMINE'
+            GROUP BY rv.nomClient, rv.prenomClient, rv.telephoneClient
+            """)
+    List<Object[]> countServicesByClient();
 }

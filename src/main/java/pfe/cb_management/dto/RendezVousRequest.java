@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
+import pfe.cb_management.enums.StatutMariee;
 import pfe.cb_management.enums.TypeClient;
 
 import java.time.LocalDateTime;
@@ -26,12 +27,15 @@ public class RendezVousRequest {
     @NotNull(message = "Le type de client est obligatoire")
     private TypeClient typeClient;
 
+    // Optionnel, uniquement pour TypeClient.MARIAGE
+    private StatutMariee statutMariee;
+
     @NotNull(message = "La date de début est obligatoire")
     private LocalDateTime dateDebut;
 
-    @NotNull(message = "La durée en heures est obligatoire")
+    @NotNull(message = "La durée en minutes est obligatoire")
     @Positive(message = "La durée doit être supérieure à 0")
-    private Integer nbHeures;
+    private Integer dureeMinutes;
 
     @NotEmpty(message = "Le rendez-vous doit contenir au moins un service")
     @Valid

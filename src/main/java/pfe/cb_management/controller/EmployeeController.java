@@ -60,10 +60,22 @@ public class EmployeeController {
                 rendezVousService.getMesRendezVousById(userDetails.getUsername(), id));
     }
 
+    // ── COMMENCER UN RENDEZ-VOUS ──────────────────────────────
+    @PatchMapping("/mes-rendez-vous/{id}/commencer")
+    @Operation(summary = "Marquer un rendez-vous comme en cours",
+               description = "Seul l'employé assigné peut commencer le rendez-vous. Seulement depuis l'état CONFIRME.")
+    public ResponseEntity<RendezVousResponse> commencerRendezVous(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(
+                rendezVousService.commencerRendezVous(userDetails.getUsername(), id));
+    }
+
     // ── TERMINER UN RENDEZ-VOUS ───────────────────────────────
     @PatchMapping("/mes-rendez-vous/{id}/terminer")
     @Operation(summary = "Marquer un rendez-vous comme terminé",
-               description = "Seul l'employé assigné peut terminer le rendez-vous. Impossible si déjà annulé ou terminé.")
+               description = "Seul l'employé assigné peut terminer le rendez-vous. Seulement depuis l'état EN_COURS.")
     public ResponseEntity<RendezVousResponse> terminerRendezVous(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {

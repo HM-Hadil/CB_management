@@ -4,6 +4,8 @@ import lombok.*;
 import pfe.cb_management.enums.Specialite;
 import pfe.cb_management.enums.TypeService;
 
+import java.time.LocalDateTime;
+
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ServiceRendezVousDto {
     private Long id;
@@ -12,4 +14,7 @@ public class ServiceRendezVousDto {
     private String employeePrenom;
     private Specialite employeeSpecialite;
     private TypeService typeService;
+    private LocalDateTime datePrevue;
+    private Integer dureeService;
+    private String codeRobe;
 }
