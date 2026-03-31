@@ -15,8 +15,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -29,54 +27,26 @@ public class FideliteService {
     private static final DateTimeFormatter MOIS_ANNEE_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
     /**
-     * Retourne la liste de toutes les clientes ayant au moins un service terminé CE MOIS-CI ou LE MOIS DERNIER,
-     * avec leurs statistiques de fidélité calculées sur le mois courant.
+     * Retourne la liste de toutes les clientes ayant au moins un service terminé (tous temps),
+     * avec leurs statistiques de fidélité cumulatives.
      */
     public List<ClienteFideliteDto> getAllClientesFidelite() {
-        LocalDate now = LocalDate.now();
-        int currentMonth = now.getMonthValue();
-        int currentYear = now.getYear();
-        String moisAnneeActuel = now.format(MOIS_ANNEE_FMT);
-
         try {
-            // Récupérer les clientes du mois courant
-            List<Object[]> thisMonthRows = rendezVousRepository.countServicesByClientForMonth(currentMonth, currentYear);
+            LocalDate today = LocalDate.now();
+            List<Object[]> rows = rendezVousRepository.countServicesByClientForMonth(today.getMonthValue(), today.getYear());
 
-            // Calculer le mois précédent
-            LocalDate prevMonth = now.minusMonths(1);
-            int prevMonthValue = prevMonth.getMonthValue();
-            int prevYear = prevMonth.getYear();
-
-            // Récupérer les clientes du mois dernier
-            List<Object[]> prevMonthRows = rendezVousRepository.countServicesByClientForMonth(prevMonthValue, prevYear);
-
-            // Fusionner: garder les uniques par téléphone (index 2), prioriser ce mois-ci
-            Map<String, Object[]> mergedMap = new LinkedHashMap<>();
-
-            // Ajouter mois dernier d'abord
-            for (Object[] row : prevMonthRows) {
-                if (row != null && row.length >= 3) {
-                    String telephone = (String) row[2];
-                    mergedMap.put(telephone, row);
-                }
+            if (rows.isEmpty()) {
+                rows = rendezVousRepository.countServicesByClientAllTime();
             }
 
-            // Puis ce mois-ci (écrase si existe)
-            for (Object[] row : thisMonthRows) {
-                if (row != null && row.length >= 3) {
-                    String telephone = (String) row[2];
-                    mergedMap.put(telephone, row);
-                }
-            }
-
-            // Construire les DTOs
-            return mergedMap.values().stream()
-                    .map(row -> buildDto(row, moisAnneeActuel))
+            return rows.stream()
+                    .filter(row -> row != null && row.length >= 5)
+                    .filter(row -> row[2] != null) // numéro de téléphone requis pour affichage
+                    .map(this::buildDto)
                     .sorted(Comparator.comparing(ClienteFideliteDto::getClientDepuis).reversed())
                     .toList();
 
         } catch (Exception e) {
-            // Log et retourner liste vide plutôt que 500 error
             System.err.println("Erreur dans getAllClientesFidelite: " + e.getMessage());
             e.printStackTrace();
             return List.of();
@@ -89,22 +59,19 @@ public class FideliteService {
      */
     @Transactional
     public ClienteFideliteDto utiliserOffre(String telephoneClient, TypeOffre typeOffre) {
-        LocalDate now = LocalDate.now();
-        int month = now.getMonthValue();
-        int year = now.getYear();
-        String moisAnnee = now.format(MOIS_ANNEE_FMT);
+        String moisAnnee = LocalDate.now().format(MOIS_ANNEE_FMT);
 
-        // Vérifier que la cliente existe et a une offre disponible ce mois-ci
-        List<Object[]> rows = rendezVousRepository.countServicesByClientForMonth(month, year);
+        // Vérifier que la cliente existe et a une offre disponible
+        List<Object[]> rows = rendezVousRepository.countServicesByClientAllTime();
         Object[] clientRow = rows.stream()
                 .filter(r -> telephoneClient.equals(r[2]))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Aucune cliente trouvée avec ce numéro"));
 
-        ClienteFideliteDto cliente = buildDto(clientRow, moisAnnee);
+        ClienteFideliteDto cliente = buildDto(clientRow);
 
         if (cliente.getOffresDisponibles() <= 0) {
-            throw new IllegalStateException("Aucune offre disponible pour cette cliente ce mois-ci");
+            throw new IllegalStateException("Aucune offre disponible pour cette cliente");
         }
 
         // Enregistrer l'utilisation de l'offre
@@ -117,27 +84,29 @@ public class FideliteService {
                 .build();
         offreFideliteRepository.save(offre);
 
-        // Retourner le DTO mis à jour via buildDto (relit les utilisations depuis la BDD)
-        Object[] updatedRow = rows.stream()
+        // Retourner le DTO mis à jour (relit les utilisations depuis la BDD après save)
+        List<Object[]> updatedRows = rendezVousRepository.countServicesByClientForMonth(LocalDate.now().getMonthValue(), LocalDate.now().getYear());
+        return updatedRows.stream()
+                .filter(r -> r != null && r.length >= 5)
                 .filter(r -> telephoneClient.equals(r[2]))
                 .findFirst()
-                .orElseThrow();
-        return buildDto(updatedRow, moisAnnee);
+                .map(this::buildDto)
+                .orElse(buildDto(clientRow));
     }
 
     // ── private helper ─────────────────────────────────────────────
-    private ClienteFideliteDto buildDto(Object[] row, String moisAnnee) {
-        String nom       = (String) row[0];
-        String prenom    = (String) row[1];
-        String telephone = (String) row[2];
+    private ClienteFideliteDto buildDto(Object[] row) {
+        String nom        = (String) row[0];
+        String prenom     = (String) row[1];
+        String telephone  = (String) row[2];
         int totalServices = ((Number) row[3]).intValue();
         LocalDateTime premierRdv = (LocalDateTime) row[4];
 
-        int offresGagnees  = totalServices / SERVICES_PAR_OFFRE;
-        int progression    = totalServices % SERVICES_PAR_OFFRE;
+        int offresGagnees = totalServices / SERVICES_PAR_OFFRE;
+        int progression   = totalServices % SERVICES_PAR_OFFRE;
 
         List<OffreFidelite> utilisations = offreFideliteRepository
-                .findByTelephoneClientAndMoisAnneeOrderByCreatedAtAsc(telephone, moisAnnee);
+                .findByTelephoneClientOrderByCreatedAtAsc(telephone);
 
         List<OffreUtiliseeDto> details = utilisations.stream()
                 .map(o -> OffreUtiliseeDto.builder()
@@ -146,8 +115,8 @@ public class FideliteService {
                         .build())
                 .toList();
 
-        int offresUtilisees    = utilisations.size();
-        int offresDisponibles  = Math.max(0, offresGagnees - offresUtilisees);
+        int offresUtilisees   = utilisations.size();
+        int offresDisponibles = Math.max(0, offresGagnees - offresUtilisees);
 
         return ClienteFideliteDto.builder()
                 .nomClient(nom)
@@ -159,7 +128,7 @@ public class FideliteService {
                 .offresDisponibles(offresDisponibles)
                 .servicesVersProchainOffre(progression)
                 .clientDepuis(premierRdv != null ? premierRdv.toLocalDate() : LocalDate.now())
-                .moisAnnee(moisAnnee)
+                .moisAnnee(LocalDate.now().format(MOIS_ANNEE_FMT))
                 .offresUtiliseesDetails(details)
                 .build();
     }

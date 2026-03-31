@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import pfe.cb_management.dto.*;
+import pfe.cb_management.dto.StatutUpdateRequest;
 import pfe.cb_management.enums.Specialite;
 import pfe.cb_management.enums.StatutRendezVous;
 import pfe.cb_management.enums.TypeService;
@@ -90,8 +91,8 @@ public class ReceptionnisteController {
     // ── EMPLOYÉS DISPONIBLES ──────────────────────────────────
     @GetMapping("/employees/disponibles")
     @Operation(summary = "Lister les employés disponibles pour une spécialité et un créneau",
-               description = "Retourne les employés avec la spécialité donnée qui n'ont aucun rendez-vous " +
-                             "actif chevauchant la plage [dateDebut, dateDebut + nbHeures]")
+            description = "Retourne les employés avec la spécialité donnée qui n'ont aucun rendez-vous " +
+                    "actif chevauchant la plage [dateDebut, dateDebut + nbHeures]")
     public ResponseEntity<List<UserDto>> getEmployesDisponibles(
             @RequestParam Specialite specialite,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
@@ -113,10 +114,10 @@ public class ReceptionnisteController {
     // ── EMPLOYÉS DISPONIBLES par TypeService (spécialité dérivée auto) ──────────
     @GetMapping("/employees/disponibles/par-service")
     @Operation(
-        summary = "Employés disponibles selon le service sélectionné",
-        description = "La spécialité est déduite automatiquement du TypeService choisi. " +
-                      "Ex: COUPE → COIFFEUSE, SOIN_VISAGE → SOINS. " +
-                      "Retourne les employés libres sur [dateDebut, dateDebut + nbHeures]."
+            summary = "Employés disponibles selon le service sélectionné",
+            description = "La spécialité est déduite automatiquement du TypeService choisi. " +
+                    "Ex: COUPE → COIFFEUSE, SOIN_VISAGE → SOINS. " +
+                    "Retourne les employés libres sur [dateDebut, dateDebut + nbHeures]."
     )
     public ResponseEntity<List<UserDto>> getEmployesDisponiblesParService(
             @RequestParam TypeService typeService,
@@ -151,7 +152,7 @@ public class ReceptionnisteController {
     @PostMapping("/presence/{employeeId}/terminer")
     @Operation(summary = "Terminer la journée d'un employé (statut → TERMINE)")
     public ResponseEntity<PresenceResponse> terminer(@PathVariable Long employeeId) {
-        return ResponseEntity.ok(presenceService.terminer(employeeId));
+        return ResponseEntity.ok(presenceService.marquerDepart(employeeId));
     }
 
     // ── ENUM HELPERS (utiles pour le front) ───────────────────
@@ -170,8 +171,8 @@ public class ReceptionnisteController {
     // ── SERVICES GROUPÉS PAR SPÉCIALITÉ ──────────────────────
     @GetMapping("/enums/services")
     @Operation(
-        summary = "Tous les services groupés par spécialité",
-        description = "Utile pour alimenter les dropdowns : SOINS → [SOIN_VISAGE, SOIN_PIED, ...], COIFFEUSE → [COUPE, BRUSHING, ...]"
+            summary = "Tous les services groupés par spécialité",
+            description = "Utile pour alimenter les dropdowns : SOINS → [SOIN_VISAGE, SOIN_PIED, ...], COIFFEUSE → [COUPE, BRUSHING, ...]"
     )
     public ResponseEntity<List<TypeServiceGroupeDto>> getServicesGroupes() {
         return ResponseEntity.ok(rendezVousService.getServicesGroupesParSpecialite());

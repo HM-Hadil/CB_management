@@ -12,4 +12,7 @@ public interface OffreFideliteRepository extends JpaRepository<OffreFidelite, Lo
 
     /** Détail des offres utilisées ce mois-ci pour une cliente (triées par date) */
     List<OffreFidelite> findByTelephoneClientAndMoisAnneeOrderByCreatedAtAsc(String telephoneClient, String moisAnnee);
+
+    /** Toutes les offres utilisées pour une cliente (tous temps) */
+    List<OffreFidelite> findByTelephoneClientOrderByCreatedAtAsc(String telephoneClient);
 }

@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pfe.cb_management.entity.RendezVous;
+import pfe.cb_management.entity.ServiceRendezVous;
 import pfe.cb_management.enums.StatutRendezVous;
 
 import java.time.LocalDateTime;
@@ -59,6 +60,18 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             @Param("excludeRdvId") Long excludeRdvId
     );
 
+    @Query("""
+            SELECT srv FROM ServiceRendezVous srv
+            JOIN srv.rendezVous r
+            WHERE srv.employee.id = :employeeId
+              AND r.statut <> 'ANNULE'
+              AND (:excludeRdvId IS NULL OR r.id <> :excludeRdvId)
+            """)
+    List<ServiceRendezVous> findServicesForEmployee(
+            @Param("employeeId") Long employeeId,
+            @Param("excludeRdvId") Long excludeRdvId
+    );
+
     // Nombre de services par cliente pour un mois/année donné (RDV terminés uniquement)
     @Query("""
             SELECT rv.nomClient, rv.prenomClient, rv.telephoneClient, COUNT(srv.id), MIN(rv.dateDebut)
@@ -70,4 +83,15 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             GROUP BY rv.nomClient, rv.prenomClient, rv.telephoneClient
             """)
     List<Object[]> countServicesByClientForMonth(@Param("month") int month, @Param("year") int year);
+
+    // Nombre de services total par cliente tous temps confondus (RDV terminés uniquement)
+    @Query("""
+            SELECT rv.nomClient, rv.prenomClient, rv.telephoneClient, COUNT(srv.id), MIN(rv.dateDebut)
+            FROM RendezVous rv
+            JOIN rv.services srv
+            WHERE rv.statut = 'TERMINE'
+              AND rv.telephoneClient IS NOT NULL
+            GROUP BY rv.nomClient, rv.prenomClient, rv.telephoneClient
+            """)
+    List<Object[]> countServicesByClientAllTime();
 }

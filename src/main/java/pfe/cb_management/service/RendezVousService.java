@@ -60,24 +60,37 @@ public class RendezVousService {
     }
 
     private void validateEmployeeAvailability(RendezVousRequest request, Long excludeRdvId) {
-        LocalDateTime dateDebut = request.getDateDebut();
-        LocalDateTime dateFin = dateDebut.plusMinutes(request.getDureeMinutes());
-
-        Set<Long> checkedEmployeeIds = new HashSet<>();
+        // Cache existing services per employee to avoid repeated DB calls.
+        var existingServicesCache = new java.util.HashMap<Long, List<ServiceRendezVous>>();
 
         for (var srv : request.getServices()) {
             if (srv.getEmployeeId() == null) continue;
-            if (!checkedEmployeeIds.add(srv.getEmployeeId())) continue;
 
             User employee = userRepository.findById(srv.getEmployeeId())
                     .orElseThrow(() -> new RuntimeException("Employé introuvable avec l'id : " + srv.getEmployeeId()));
 
-            List<RendezVous> conflicts = rendezVousRepository.findConflictingRendezVousForEmployee(
-                    employee.getId(), dateDebut, dateFin, excludeRdvId);
+            LocalDateTime srvStart = srv.getDatePrevue() != null ? srv.getDatePrevue() : request.getDateDebut();
+            int duree = srv.getDureeService() != null ? srv.getDureeService() : request.getDureeMinutes();
+            LocalDateTime srvEnd = srvStart.plusMinutes(duree);
 
-            if (!conflicts.isEmpty()) {
-                throw new RuntimeException("L'employé " + employee.getNom() + " " + employee.getPrenom() +
-                        " est déjà occupé du " + dateDebut + " au " + dateFin + ".");
+            List<ServiceRendezVous> existingServices = existingServicesCache.computeIfAbsent(employee.getId(), id ->
+                    rendezVousRepository.findServicesForEmployee(id, excludeRdvId));
+
+            for (ServiceRendezVous existing : existingServices) {
+                LocalDateTime existingStart = existing.getDatePrevue() != null
+                        ? existing.getDatePrevue()
+                        : existing.getRendezVous().getDateDebut();
+
+                int existingDuration = existing.getDureeService() != null
+                        ? existing.getDureeService()
+                        : existing.getRendezVous().getDureeMinutes();
+                LocalDateTime existingEnd = existingStart.plusMinutes(existingDuration);
+
+                boolean overlap = srvStart.isBefore(existingEnd) && existingStart.isBefore(srvEnd);
+                if (overlap) {
+                    throw new RuntimeException("L'employé " + employee.getNom() + " " + employee.getPrenom() +
+                            " est déjà occupé du " + existingStart + " au " + existingEnd + ".");
+                }
             }
         }
     }

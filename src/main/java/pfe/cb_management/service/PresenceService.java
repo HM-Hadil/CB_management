@@ -94,35 +94,7 @@ public class PresenceService {
         }
 
         presence.setHeureDepart(LocalTime.now());
-        // status stays PRESENT — receptionist must click "Terminer" to finalize
-
-        return toResponse(presenceRepository.save(presence), employee);
-    }
-
-    // ── TERMINATE workday ──────────────────────────────────────────────────
-    @Transactional
-    public PresenceResponse terminer(Long employeeId) {
-        LocalDate today = LocalDate.now();
-        User employee = userRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employé introuvable"));
-
-        Presence presence = presenceRepository.findByEmployeeIdAndDate(employeeId, today)
-                .orElseThrow(() -> new RuntimeException("Aucune présence enregistrée pour aujourd'hui."));
-
-        if (presence.getHeureDepart() == null) {
-            // si le départ n'a pas été marqué mais l'arrivé est présente, on utilise l'arrivé
-            if (presence.getHeureArrivee() != null) {
-                presence.setHeureDepart(presence.getHeureArrivee());
-            } else {
-                throw new RuntimeException("Veuillez d'abord marquer le départ avant de terminer.");
-            }
-        }
-        if (presence.getStatut() == StatutPresence.TERMINE) {
-            throw new RuntimeException("La journée est déjà terminée pour cet employé.");
-        }
-
         presence.setStatut(StatutPresence.TERMINE);
-        presence.setHeureTerminaison(LocalTime.now());
 
         return toResponse(presenceRepository.save(presence), employee);
     }
@@ -130,10 +102,7 @@ public class PresenceService {
     // ── Helper ─────────────────────────────────────────────────────────────
     private PresenceResponse toResponse(Presence p, User employee) {
         Double heuresTravaillees = null;
-        if (p.getHeureDepart() != null && p.getHeureTerminaison() != null) {
-            long minutes = Duration.between(p.getHeureDepart(), p.getHeureTerminaison()).toMinutes();
-            heuresTravaillees = Math.round(minutes / 60.0 * 100.0) / 100.0;
-        } else if (p.getHeureArrivee() != null && p.getHeureDepart() != null) {
+        if (p.getHeureArrivee() != null && p.getHeureDepart() != null) {
             long minutes = Duration.between(p.getHeureArrivee(), p.getHeureDepart()).toMinutes();
             heuresTravaillees = Math.round(minutes / 60.0 * 100.0) / 100.0;
         }
