@@ -4,6 +4,8 @@ import lombok.*;
 import pfe.cb_management.enums.Role;
 import pfe.cb_management.enums.Specialite;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,7 +19,7 @@ public class AuthResponse {
     private String prenom;
     private Role role;
     private boolean activated;
-    private Specialite specialite;
+    private Set<Specialite> specialites;
     private Integer nombresExperiences;
     private String message;
 }

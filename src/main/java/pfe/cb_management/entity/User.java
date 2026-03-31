@@ -9,7 +9,9 @@ import pfe.cb_management.enums.Role;
 import pfe.cb_management.enums.Specialite;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -42,8 +44,12 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean activated = true;
 
+    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    private Specialite specialite;
+    @CollectionTable(name = "user_specialites", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "specialite")
+    @Builder.Default
+    private Set<Specialite> specialites = new HashSet<>();
 
     private Integer nombresExperiences;
 

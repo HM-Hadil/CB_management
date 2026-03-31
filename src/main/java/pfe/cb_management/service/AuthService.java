@@ -13,6 +13,8 @@ import pfe.cb_management.enums.Role;
 import pfe.cb_management.repository.UserRepository;
 import pfe.cb_management.security.JwtService;
 
+import java.util.HashSet;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -36,7 +38,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .activated(true)
-                .specialite(request.getSpecialite())
+                .specialites(request.getSpecialites() != null ? request.getSpecialites() : new HashSet<>())
                 .nombresExperiences(request.getNombresExperiences())
                 .build();
 
@@ -70,7 +72,7 @@ public class AuthService {
                 .prenom(user.getPrenom())
                 .role(user.getRole())
                 .activated(user.isActivated())
-                .specialite(user.getSpecialite())
+                .specialites(user.getSpecialites())
                 .nombresExperiences(user.getNombresExperiences())
                 .message(message)
                 .build();

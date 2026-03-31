@@ -14,4 +14,5 @@ public class ProduitStockRequest {
     private int quantiteMinimum;
     private String unite;
     private BigDecimal prixUnitaire;
+    private String nomFournisseur;
 }

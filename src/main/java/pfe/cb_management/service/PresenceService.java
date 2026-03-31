@@ -47,7 +47,7 @@ public class PresenceService {
                     .employeeId(emp.getId())
                     .employeeNom(emp.getNom())
                     .employeePrenom(emp.getPrenom())
-                    .employeeSpecialite(emp.getSpecialite() != null ? emp.getSpecialite().name() : null)
+                    .employeeSpecialite(emp.getSpecialites() != null && !emp.getSpecialites().isEmpty() ? emp.getSpecialites().iterator().next().name() : null)
                     .date(date.toString())
                     .statut(StatutPresence.ABSENT)
                     .build();
@@ -110,13 +110,19 @@ public class PresenceService {
                 .orElseThrow(() -> new RuntimeException("Aucune présence enregistrée pour aujourd'hui."));
 
         if (presence.getHeureDepart() == null) {
-            throw new RuntimeException("Veuillez d'abord marquer le départ avant de terminer.");
+            // si le départ n'a pas été marqué mais l'arrivé est présente, on utilise l'arrivé
+            if (presence.getHeureArrivee() != null) {
+                presence.setHeureDepart(presence.getHeureArrivee());
+            } else {
+                throw new RuntimeException("Veuillez d'abord marquer le départ avant de terminer.");
+            }
         }
         if (presence.getStatut() == StatutPresence.TERMINE) {
             throw new RuntimeException("La journée est déjà terminée pour cet employé.");
         }
 
         presence.setStatut(StatutPresence.TERMINE);
+        presence.setHeureTerminaison(LocalTime.now());
 
         return toResponse(presenceRepository.save(presence), employee);
     }
@@ -124,7 +130,10 @@ public class PresenceService {
     // ── Helper ─────────────────────────────────────────────────────────────
     private PresenceResponse toResponse(Presence p, User employee) {
         Double heuresTravaillees = null;
-        if (p.getHeureArrivee() != null && p.getHeureDepart() != null) {
+        if (p.getHeureDepart() != null && p.getHeureTerminaison() != null) {
+            long minutes = Duration.between(p.getHeureDepart(), p.getHeureTerminaison()).toMinutes();
+            heuresTravaillees = Math.round(minutes / 60.0 * 100.0) / 100.0;
+        } else if (p.getHeureArrivee() != null && p.getHeureDepart() != null) {
             long minutes = Duration.between(p.getHeureArrivee(), p.getHeureDepart()).toMinutes();
             heuresTravaillees = Math.round(minutes / 60.0 * 100.0) / 100.0;
         }
@@ -133,7 +142,7 @@ public class PresenceService {
                 .employeeId(employee.getId())
                 .employeeNom(employee.getNom())
                 .employeePrenom(employee.getPrenom())
-                .employeeSpecialite(employee.getSpecialite() != null ? employee.getSpecialite().name() : null)
+                .employeeSpecialite(employee.getSpecialites() != null && !employee.getSpecialites().isEmpty() ? employee.getSpecialites().iterator().next().name() : null)
                 .date(p.getDate().toString())
                 .heureArrivee(p.getHeureArrivee() != null ? p.getHeureArrivee().format(TIME_FMT) : null)
                 .heureDepart(p.getHeureDepart() != null ? p.getHeureDepart().format(TIME_FMT) : null)

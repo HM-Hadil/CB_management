@@ -4,6 +4,8 @@ import lombok.*;
 import pfe.cb_management.enums.Role;
 import pfe.cb_management.enums.Specialite;
 
+import java.util.Set;
+
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UserDto {
     private Long id;
@@ -13,6 +15,6 @@ public class UserDto {
     private String telephone;
     private Role role;
     private boolean activated;
-    private Specialite specialite;
+    private Set<Specialite> specialites;
     private Integer nombresExperiences;
 }

@@ -39,6 +39,7 @@ public class StockService {
                 .quantiteMinimum(request.getQuantiteMinimum())
                 .unite(request.getUnite())
                 .prixUnitaire(request.getPrixUnitaire())
+                .nomFournisseur(request.getNomFournisseur())
                 .build();
         return toDto(produitStockRepository.save(produit));
     }
@@ -53,6 +54,18 @@ public class StockService {
         produit.setQuantiteMinimum(request.getQuantiteMinimum());
         produit.setUnite(request.getUnite());
         produit.setPrixUnitaire(request.getPrixUnitaire());
+        produit.setNomFournisseur(request.getNomFournisseur());
+        return toDto(produitStockRepository.save(produit));
+    }
+
+    @Transactional
+    public ProduitStockDto decrementeQuantite(Long id) {
+        ProduitStock produit = produitStockRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable : " + id));
+        if (produit.getQuantite() <= 0) {
+            throw new RuntimeException("La quantité est déjà à 0.");
+        }
+        produit.setQuantite(produit.getQuantite() - 1);
         return toDto(produitStockRepository.save(produit));
     }
 
@@ -73,6 +86,7 @@ public class StockService {
                 .quantiteMinimum(p.getQuantiteMinimum())
                 .unite(p.getUnite())
                 .prixUnitaire(p.getPrixUnitaire())
+                .nomFournisseur(p.getNomFournisseur())
                 .enAlerte(p.getQuantite() <= p.getQuantiteMinimum())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())

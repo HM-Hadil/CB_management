@@ -42,13 +42,32 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     // Rendez-vous expirés (dateFin passée) dont le statut n'est pas encore TERMINE ou ANNULE
     List<RendezVous> findByDateFinBeforeAndStatutNotIn(LocalDateTime dateFin, List<StatutRendezVous> statuts);
 
-    // Nombre de services par cliente (RDV terminés uniquement)
+    // Rendez-vous en conflit horaire pour un employé donné (hors rendez-vous optionnel à exclure)
+    @Query("""
+            SELECT DISTINCT r FROM RendezVous r
+            JOIN r.services s
+            WHERE s.employee.id = :employeeId
+              AND r.statut <> 'ANNULE'
+              AND r.dateDebut < :dateFin
+              AND r.dateFin > :dateDebut
+              AND (:excludeRdvId IS NULL OR r.id <> :excludeRdvId)
+            """)
+    List<RendezVous> findConflictingRendezVousForEmployee(
+            @Param("employeeId") Long employeeId,
+            @Param("dateDebut") LocalDateTime dateDebut,
+            @Param("dateFin") LocalDateTime dateFin,
+            @Param("excludeRdvId") Long excludeRdvId
+    );
+
+    // Nombre de services par cliente pour un mois/année donné (RDV terminés uniquement)
     @Query("""
             SELECT rv.nomClient, rv.prenomClient, rv.telephoneClient, COUNT(srv.id), MIN(rv.dateDebut)
             FROM RendezVous rv
             JOIN rv.services srv
             WHERE rv.statut = 'TERMINE'
+              AND MONTH(rv.dateDebut) = :month
+              AND YEAR(rv.dateDebut) = :year
             GROUP BY rv.nomClient, rv.prenomClient, rv.telephoneClient
             """)
-    List<Object[]> countServicesByClient();
+    List<Object[]> countServicesByClientForMonth(@Param("month") int month, @Param("year") int year);
 }

@@ -17,7 +17,9 @@ import pfe.cb_management.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,10 +51,35 @@ public class RendezVousService {
                 .createdBy(receptionniste)
                 .build();
 
+        validateEmployeeAvailability(request, null);
+
         List<ServiceRendezVous> services = buildServices(request.getServices(), rdv, request.getTypeClient());
         rdv.setServices(services);
 
         return toResponse(rendezVousRepository.save(rdv));
+    }
+
+    private void validateEmployeeAvailability(RendezVousRequest request, Long excludeRdvId) {
+        LocalDateTime dateDebut = request.getDateDebut();
+        LocalDateTime dateFin = dateDebut.plusMinutes(request.getDureeMinutes());
+
+        Set<Long> checkedEmployeeIds = new HashSet<>();
+
+        for (var srv : request.getServices()) {
+            if (srv.getEmployeeId() == null) continue;
+            if (!checkedEmployeeIds.add(srv.getEmployeeId())) continue;
+
+            User employee = userRepository.findById(srv.getEmployeeId())
+                    .orElseThrow(() -> new RuntimeException("Employé introuvable avec l'id : " + srv.getEmployeeId()));
+
+            List<RendezVous> conflicts = rendezVousRepository.findConflictingRendezVousForEmployee(
+                    employee.getId(), dateDebut, dateFin, excludeRdvId);
+
+            if (!conflicts.isEmpty()) {
+                throw new RuntimeException("L'employé " + employee.getNom() + " " + employee.getPrenom() +
+                        " est déjà occupé du " + dateDebut + " au " + dateFin + ".");
+            }
+        }
     }
 
     // ── Lister tous les rendez-vous ───────────────────────────
@@ -79,6 +106,8 @@ public class RendezVousService {
         LocalDateTime dateFin = dateDebut.plusMinutes(request.getDureeMinutes());
 
         rdv.setNomClient(request.getNomClient());
+        validateEmployeeAvailability(request, id);
+
         rdv.setPrenomClient(request.getPrenomClient());
         rdv.setTelephoneClient(request.getTelephoneClient());
         rdv.setTypeClient(request.getTypeClient());
@@ -220,7 +249,7 @@ public class RendezVousService {
     public List<UserDto> getEmployesParSpecialite(Specialite specialite) {
         return userRepository.findByRole(Role.EMPLOYEE)
                 .stream()
-                .filter(u -> specialite.equals(u.getSpecialite()) && u.isActivated())
+                .filter(u -> u.getSpecialites().contains(specialite) && u.isActivated())
                 .map(this::toUserDto)
                 .toList();
     }
@@ -252,11 +281,11 @@ public class RendezVousService {
                 }
 
                 Specialite specialiteRequise = req.getTypeService().getSpecialite();
-                if (!specialiteRequise.equals(employee.getSpecialite())) {
+                if (!employee.getSpecialites().contains(specialiteRequise)) {
                     throw new RuntimeException(
                             "L'employé " + employee.getNom() + " " + employee.getPrenom()
                             + " n'a pas la spécialité requise pour le service " + req.getTypeService().name()
-                            + " (requis : " + specialiteRequise + ", employé : " + employee.getSpecialite() + ")."
+                            + " (requis : " + specialiteRequise + ", spécialités employé : " + employee.getSpecialites() + ")."
                     );
                 }
             } else if (typeClient != TypeClient.MARIAGE) {
@@ -314,7 +343,7 @@ public class RendezVousService {
             dto.setEmployeeId(srv.getEmployee().getId());
             dto.setEmployeeNom(srv.getEmployee().getNom());
             dto.setEmployeePrenom(srv.getEmployee().getPrenom());
-            dto.setEmployeeSpecialite(srv.getEmployee().getSpecialite());
+            dto.setEmployeeSpecialite(srv.getTypeService().getSpecialite());
         }
         return dto;
     }
@@ -328,7 +357,7 @@ public class RendezVousService {
                 .telephone(user.getTelephone())
                 .role(user.getRole())
                 .activated(user.isActivated())
-                .specialite(user.getSpecialite())
+                .specialites(user.getSpecialites())
                 .nombresExperiences(user.getNombresExperiences())
                 .build();
     }

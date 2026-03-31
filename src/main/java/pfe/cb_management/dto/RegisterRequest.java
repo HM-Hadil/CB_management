@@ -5,6 +5,8 @@ import lombok.*;
 import pfe.cb_management.enums.Role;
 import pfe.cb_management.enums.Specialite;
 
+import java.util.Set;
+
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RegisterRequest {
 
@@ -28,6 +30,6 @@ public class RegisterRequest {
     private Role role;
 
     // Spécifiques employé (optionnels)
-    private Specialite specialite;
+    private Set<Specialite> specialites;
     private Integer nombresExperiences;
 }

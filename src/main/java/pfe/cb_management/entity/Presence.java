@@ -29,7 +29,10 @@ public class Presence {
 
     private LocalTime heureDepart;
 
+    private LocalTime heureTerminaison;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private StatutPresence statut = StatutPresence.ABSENT;
+
 }

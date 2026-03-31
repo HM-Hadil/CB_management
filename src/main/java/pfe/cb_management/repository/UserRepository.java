@@ -26,12 +26,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // dont le statut n'est pas ANNULE et dont l'horaire chevauche le créneau demandé.
     @Query("""
             SELECT u FROM User u
-            WHERE u.specialite = :specialite
+            WHERE :specialite MEMBER OF u.specialites
               AND u.role = 'EMPLOYEE'
               AND u.activated = true
               AND u.id NOT IN (
                   SELECT srv.employee.id FROM ServiceRendezVous srv
-                  WHERE srv.rendezVous.statut <> 'ANNULE'
+                  WHERE srv.rendezVous.statut NOT IN ('ANNULE', 'TERMINE')
                     AND srv.rendezVous.dateDebut < :dateFin
                     AND srv.rendezVous.dateFin  > :dateDebut
               )

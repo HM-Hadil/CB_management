@@ -26,9 +26,18 @@ public class DataInitializer implements ApplicationRunner {
 
     private void createAdminIfNotExists() {
         String adminEmail = "admin@alghanja.tn";
+        String adminPassword = "Admin@2025"; // mot de passe par défaut sécurisé
 
-        if (userRepository.existsByEmail(adminEmail)) {
-            log.info("✅ Compte admin déjà existant — aucune action.");
+        var existingAdmin = userRepository.findByEmail(adminEmail);
+        if (existingAdmin.isPresent()) {
+            User admin = existingAdmin.get();
+            if (!passwordEncoder.matches(adminPassword, admin.getPassword())) {
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                userRepository.save(admin);
+                log.warn("⚠️ Compte admin existant, mot de passe forcé à la valeur par défaut. Pensez à le changer immédiatement.");
+            } else {
+                log.info("✅ Compte admin déjà existant et password est à jour.");
+            }
             return;
         }
 
@@ -37,7 +46,7 @@ public class DataInitializer implements ApplicationRunner {
                 .prenom("Al-Ghanja")
                 .email(adminEmail)
                 .telephone("+216 75 000 000")
-                .password(passwordEncoder.encode("Admin@2025"))
+                .password(passwordEncoder.encode(adminPassword))
                 .role(Role.ADMIN)
                 .activated(true)
                 .build();
@@ -45,7 +54,7 @@ public class DataInitializer implements ApplicationRunner {
         userRepository.save(admin);
         log.info("🌸 Compte admin créé avec succès !");
         log.info("   📧 Email    : {}", adminEmail);
-        log.info("   🔑 Password : Admin@2025");
+        log.info("   🔑 Password : {}", adminPassword);
         log.info("   ⚠️  Pensez à changer le mot de passe en production !");
     }
 }

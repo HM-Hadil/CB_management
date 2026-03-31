@@ -36,7 +36,7 @@ public class UserService {
         return toDto(findUser(id));
     }
 
-    // ── Modifier un utilisateur (admin) ──────────────────────
+    // ── Modifier un utilisateur (admin) — nom/prénom/téléphone/email/mot de passe uniquement ──
     public UserDto updateUser(Long id, UpdateUserRequest request) {
         User user = findUser(id);
 
@@ -44,8 +44,6 @@ public class UserService {
         if (request.getPrenom() != null) user.setPrenom(request.getPrenom());
         if (request.getTelephone() != null) user.setTelephone(request.getTelephone());
         if (request.getRole() != null) user.setRole(request.getRole());
-        if (request.getSpecialite() != null) user.setSpecialite(request.getSpecialite());
-        if (request.getNombresExperiences() != null) user.setNombresExperiences(request.getNombresExperiences());
 
         // Changer l'email seulement si non pris
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
@@ -91,7 +89,7 @@ public class UserService {
         }
 
         if (request.getTelephone() != null) user.setTelephone(request.getTelephone());
-        if (request.getSpecialite() != null) user.setSpecialite(request.getSpecialite());
+        if (request.getSpecialites() != null) user.setSpecialites(request.getSpecialites());
         if (request.getNombresExperiences() != null) user.setNombresExperiences(request.getNombresExperiences());
 
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
@@ -126,7 +124,7 @@ public class UserService {
                 .telephone(user.getTelephone())
                 .role(user.getRole())
                 .activated(user.isActivated())
-                .specialite(user.getSpecialite())
+                .specialites(user.getSpecialites())
                 .nombresExperiences(user.getNombresExperiences())
                 .build();
     }

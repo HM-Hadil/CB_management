@@ -4,11 +4,13 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import pfe.cb_management.enums.Specialite;
 
+import java.util.Set;
+
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UpdateProfileRequest {
 
     private String telephone;
-    private Specialite specialite;
+    private Set<Specialite> specialites;
     private Integer nombresExperiences;
     private String nom;
     private String prenom;

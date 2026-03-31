@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import pfe.cb_management.dto.ClienteFideliteDto;
+import pfe.cb_management.dto.UtiliserOffreRequest;
 import pfe.cb_management.service.FideliteService;
 
 import java.util.List;
@@ -16,22 +17,24 @@ import java.util.List;
 @RequestMapping("/api/receptionist/fidelite")
 @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
 @RequiredArgsConstructor
-@Tag(name = "Fidélité", description = "Programme de fidélité : 1 service gratuit tous les 5 services payants")
+@Tag(name = "Fidélité", description = "Programme de fidélité : 1 service gratuit tous les 5 services payants par mois")
 @SecurityRequirement(name = "bearerAuth")
 public class FideliteController {
 
     private final FideliteService fideliteService;
 
     @GetMapping("/clientes")
-    @Operation(summary = "Lister toutes les clientes avec leurs statistiques de fidélité")
+    @Operation(summary = "Lister toutes les clientes avec leurs statistiques de fidélité du mois en cours")
     public ResponseEntity<List<ClienteFideliteDto>> getAllClientesFidelite() {
         return ResponseEntity.ok(fideliteService.getAllClientesFidelite());
     }
 
     @PostMapping("/utiliser/{telephone}")
     @Operation(summary = "Utiliser une offre pour une cliente",
-               description = "Décrémente le nombre d'offres disponibles pour la cliente identifiée par son téléphone")
-    public ResponseEntity<ClienteFideliteDto> utiliserOffre(@PathVariable String telephone) {
-        return ResponseEntity.ok(fideliteService.utiliserOffre(telephone));
+               description = "Enregistre le type d'offre choisi (SERVICE_GRATUIT ou PROMO_PROCHAIN_SERVICE)")
+    public ResponseEntity<ClienteFideliteDto> utiliserOffre(
+            @PathVariable String telephone,
+            @RequestBody UtiliserOffreRequest request) {
+        return ResponseEntity.ok(fideliteService.utiliserOffre(telephone, request.getTypeOffre()));
     }
 }

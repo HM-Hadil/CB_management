@@ -37,6 +37,9 @@ public class ProduitStock {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal prixUnitaire;
 
+    @Column
+    private String nomFournisseur;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
