@@ -83,4 +83,28 @@ public class EmployeeController {
         return ResponseEntity.ok(
                 rendezVousService.terminerRendezVous(userDetails.getUsername(), id));
     }
+
+    // ── COMMENCER UN SERVICE INDIVIDUEL ───────────────────────
+    @PatchMapping("/mes-services/{serviceId}/commencer")
+    @Operation(summary = "Marquer un service individuel comme en cours",
+               description = "Seul l'employé assigné peut commencer le service. Seulement depuis l'état CONFIRME.")
+    public ResponseEntity<RendezVousResponse> commencerService(
+            @PathVariable Long serviceId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(
+                rendezVousService.commencerService(userDetails.getUsername(), serviceId));
+    }
+
+    // ── TERMINER UN SERVICE INDIVIDUEL ────────────────────────
+    @PatchMapping("/mes-services/{serviceId}/terminer")
+    @Operation(summary = "Marquer un service individuel comme terminé",
+               description = "Seul l'employé assigné peut terminer le service. Seulement depuis l'état EN_COURS.")
+    public ResponseEntity<RendezVousResponse> terminerService(
+            @PathVariable Long serviceId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(
+                rendezVousService.terminerService(userDetails.getUsername(), serviceId));
+    }
 }

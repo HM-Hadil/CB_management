@@ -34,11 +34,11 @@ public class ProduitStock {
     @Column(nullable = false)
     private String unite;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal prixUnitaire;
-
     @Column
     private String nomFournisseur;
+
+    @Column
+    private String reference;
 
     @CreationTimestamp
     @Column(updatable = false)

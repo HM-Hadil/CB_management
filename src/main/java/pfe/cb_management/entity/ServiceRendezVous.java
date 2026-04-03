@@ -2,6 +2,7 @@ package pfe.cb_management.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import pfe.cb_management.enums.StatutService;
 import pfe.cb_management.enums.TypeService;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,11 @@ public class ServiceRendezVous {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TypeService typeService;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private StatutService statut = StatutService.EN_ATTENTE;
 
     // ── Champs spécifiques aux services mariée ─────────────
     /** Date/heure propre à ce service (optionnel, remplace la date globale du RDV) */

@@ -16,6 +16,7 @@ import pfe.cb_management.dto.*;
 import pfe.cb_management.dto.StatutUpdateRequest;
 import pfe.cb_management.enums.Specialite;
 import pfe.cb_management.enums.StatutRendezVous;
+import pfe.cb_management.enums.StatutService;
 import pfe.cb_management.enums.TypeService;
 import pfe.cb_management.service.PresenceService;
 import pfe.cb_management.service.RendezVousService;
@@ -78,6 +79,16 @@ public class ReceptionnisteController {
             @Valid @RequestBody StatutUpdateRequest request) {
 
         return ResponseEntity.ok(rendezVousService.changerStatut(id, request.getStatut()));
+    }
+
+    // ── CHANGER LE STATUT D'UN SERVICE INDIVIDUEL ─────────────
+    @PatchMapping("/services/{serviceId}/statut")
+    @Operation(summary = "Changer le statut d'un service individuel : EN_ATTENTE | CONFIRME | ANNULE | EN_COURS | TERMINE")
+    public ResponseEntity<RendezVousResponse> changerStatutService(
+            @PathVariable Long serviceId,
+            @Valid @RequestBody ServiceStatutUpdateRequest request) {
+
+        return ResponseEntity.ok(rendezVousService.changerStatutService(serviceId, request.getStatut()));
     }
 
     // ── SUPPRIMER un rendez-vous ──────────────────────────────

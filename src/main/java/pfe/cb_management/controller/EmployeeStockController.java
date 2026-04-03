@@ -6,8 +6,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import pfe.cb_management.dto.ProduitStockDto;
+import pfe.cb_management.dto.UtilisationProduitRequest;
+import pfe.cb_management.entity.User;
 import pfe.cb_management.service.StockService;
 
 import java.util.List;
@@ -23,14 +26,19 @@ public class EmployeeStockController {
     private final StockService stockService;
 
     @GetMapping
-    @Operation(summary = "Lister tous les produits en stock")
-    public ResponseEntity<List<ProduitStockDto>> getAllProduits() {
-        return ResponseEntity.ok(stockService.getAllProduits());
+    @Operation(summary = "Lister les produits correspondant aux spécialités de l'employée")
+    public ResponseEntity<List<ProduitStockDto>> getAllProduits(
+            @AuthenticationPrincipal User user) {
+        if (user.getSpecialites() == null || user.getSpecialites().isEmpty()) {
+            return ResponseEntity.ok(stockService.getAllProduits());
+        }
+        return ResponseEntity.ok(stockService.getProduitsBySpecialites(user.getSpecialites()));
     }
 
-    @PatchMapping("/{id}/decrementer")
-    @Operation(summary = "Décrémenter la quantité d'un produit de 1")
-    public ResponseEntity<ProduitStockDto> decrementer(@PathVariable Long id) {
-        return ResponseEntity.ok(stockService.decrementeQuantite(id));
+    @PostMapping("/utiliser")
+    @Operation(summary = "Signaler l'utilisation de plusieurs produits en une seule opération")
+    public ResponseEntity<List<ProduitStockDto>> utiliserProduits(
+            @RequestBody List<UtilisationProduitRequest> utilisations) {
+        return ResponseEntity.ok(stockService.utiliserProduits(utilisations));
     }
 }

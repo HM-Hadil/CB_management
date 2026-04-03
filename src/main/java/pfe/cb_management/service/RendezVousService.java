@@ -10,9 +10,11 @@ import pfe.cb_management.entity.User;
 import pfe.cb_management.enums.Role;
 import pfe.cb_management.enums.Specialite;
 import pfe.cb_management.enums.StatutRendezVous;
+import pfe.cb_management.enums.StatutService;
 import pfe.cb_management.enums.TypeClient;
 import pfe.cb_management.enums.TypeService;
 import pfe.cb_management.repository.RendezVousRepository;
+import pfe.cb_management.repository.ServiceRendezVousRepository;
 import pfe.cb_management.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class RendezVousService {
 
     private final RendezVousRepository rendezVousRepository;
+    private final ServiceRendezVousRepository serviceRendezVousRepository;
     private final UserRepository userRepository;
 
     // ── Créer un rendez-vous ──────────────────────────────────
@@ -197,6 +200,91 @@ public class RendezVousService {
         return toResponse(rendezVousRepository.save(rdv));
     }
 
+    // ── Changer le statut d'un service individuel ─────────────
+    @Transactional
+    public RendezVousResponse changerStatutService(Long serviceId, StatutService nouveauStatut) {
+        ServiceRendezVous service = findService(serviceId);
+        service.setStatut(nouveauStatut);
+
+        // Mettre à jour le statut du rendez-vous en fonction des statuts des services
+        updateRendezVousStatutFromServices(service.getRendezVous());
+
+        return toResponse(rendezVousRepository.save(service.getRendezVous()));
+    }
+
+    // ── Commencer un service individuel (action employé) ──────
+    @Transactional
+    public RendezVousResponse commencerService(String emailEmployee, Long serviceId) {
+        User employee = findUserByEmail(emailEmployee);
+        ServiceRendezVous service = findService(serviceId);
+
+        if (!service.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Ce service ne vous est pas assigné.");
+        }
+        if (service.getStatut() != StatutService.CONFIRME) {
+            throw new RuntimeException("Seul un service confirmé peut être commencé.");
+        }
+
+        service.setStatut(StatutService.EN_COURS);
+        updateRendezVousStatutFromServices(service.getRendezVous());
+
+        return toResponse(rendezVousRepository.save(service.getRendezVous()));
+    }
+
+    // ── Terminer un service individuel (action employé) ───────
+    @Transactional
+    public RendezVousResponse terminerService(String emailEmployee, Long serviceId) {
+        User employee = findUserByEmail(emailEmployee);
+        ServiceRendezVous service = findService(serviceId);
+
+        if (!service.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Ce service ne vous est pas assigné.");
+        }
+        if (service.getStatut() != StatutService.EN_COURS) {
+            throw new RuntimeException("Seul un service en cours peut être terminé.");
+        }
+
+        service.setStatut(StatutService.TERMINE);
+        updateRendezVousStatutFromServices(service.getRendezVous());
+
+        return toResponse(rendezVousRepository.save(service.getRendezVous()));
+    }
+
+    // ── Méthode utilitaire pour trouver un service ────────────
+    private ServiceRendezVous findService(Long serviceId) {
+        return serviceRendezVousRepository.findById(serviceId)
+                .orElseThrow(() -> new RuntimeException("Service introuvable avec l'id : " + serviceId));
+    }
+
+    // ── Mettre à jour le statut du RDV en fonction des services ─
+    private void updateRendezVousStatutFromServices(RendezVous rdv) {
+        List<StatutService> serviceStatuses = rdv.getServices().stream()
+                .map(ServiceRendezVous::getStatut)
+                .toList();
+
+        StatutRendezVous newRdvStatus;
+
+        if (serviceStatuses.stream().allMatch(s -> s == StatutService.ANNULE)) {
+            newRdvStatus = StatutRendezVous.ANNULE;
+        } else if (serviceStatuses.stream().allMatch(s -> s == StatutService.TERMINE)) {
+            newRdvStatus = StatutRendezVous.TERMINE;
+        } else if (serviceStatuses.stream().anyMatch(s -> s == StatutService.EN_COURS)) {
+            newRdvStatus = StatutRendezVous.EN_COURS;
+        } else if (serviceStatuses.stream().allMatch(s -> s == StatutService.CONFIRME || s == StatutService.EN_ATTENTE)) {
+            // Si tous sont CONFIRME ou EN_ATTENTE, et au moins un CONFIRME
+            if (serviceStatuses.stream().anyMatch(s -> s == StatutService.CONFIRME)) {
+                newRdvStatus = StatutRendezVous.CONFIRME;
+            } else {
+                newRdvStatus = StatutRendezVous.EN_ATTENTE;
+            }
+        } else {
+            // Statuts mixtes - garder le statut actuel ou EN_COURS si nécessaire
+            newRdvStatus = rdv.getStatut();
+        }
+
+        rdv.setStatut(newRdvStatus);
+    }
+
     // ── Rendez-vous de l'employé connecté ────────────────────
     public List<RendezVousResponse> getMesRendezVous(String emailEmployee) {
         User employee = findUserByEmail(emailEmployee);
@@ -313,6 +401,7 @@ public class RendezVousService {
                     .rendezVous(rdv)
                     .employee(employee)  // null accepté pour MARIAGE
                     .typeService(req.getTypeService())
+                    .statut(StatutService.EN_ATTENTE)
                     .datePrevue(req.getDatePrevue())
                     .dureeService(req.getDureeService())
                     .codeRobe(req.getCodeRobe())
@@ -349,6 +438,7 @@ public class RendezVousService {
         ServiceRendezVousDto dto = new ServiceRendezVousDto();
         dto.setId(srv.getId());
         dto.setTypeService(srv.getTypeService());
+        dto.setStatut(srv.getStatut());
         dto.setDatePrevue(srv.getDatePrevue());
         dto.setDureeService(srv.getDureeService());
         dto.setCodeRobe(srv.getCodeRobe());

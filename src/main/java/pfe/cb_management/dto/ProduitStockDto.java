@@ -15,8 +15,8 @@ public class ProduitStockDto {
     private int quantite;
     private int quantiteMinimum;
     private String unite;
-    private BigDecimal prixUnitaire;
     private String nomFournisseur;
+    private String reference;
 
     /** true si quantite <= quantiteMinimum */
     private boolean enAlerte;
