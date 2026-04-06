@@ -40,9 +40,6 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             @Param("statut") StatutRendezVous statut
     );
 
-    // Rendez-vous expirés (dateFin passée) dont le statut n'est pas encore TERMINE ou ANNULE
-    List<RendezVous> findByDateFinBeforeAndStatutNotIn(LocalDateTime dateFin, List<StatutRendezVous> statuts);
-
     // Rendez-vous en conflit horaire pour un employé donné (hors rendez-vous optionnel à exclure)
     @Query("""
             SELECT DISTINCT r FROM RendezVous r
@@ -83,6 +80,20 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
             GROUP BY rv.nomClient, rv.prenomClient, rv.telephoneClient
             """)
     List<Object[]> countServicesByClientForMonth(@Param("month") int month, @Param("year") int year);
+
+    // Statistiques RDV par employé par mois pour une année donnée
+    @Query("""
+            SELECT s.employee.id, s.employee.nom, s.employee.prenom,
+                   MONTH(r.dateDebut), COUNT(DISTINCT r.id)
+            FROM ServiceRendezVous s
+            JOIN s.rendezVous r
+            WHERE YEAR(r.dateDebut) = :annee
+              AND r.statut <> 'ANNULE'
+              AND s.employee IS NOT NULL
+            GROUP BY s.employee.id, s.employee.nom, s.employee.prenom, MONTH(r.dateDebut)
+            ORDER BY s.employee.nom, MONTH(r.dateDebut)
+            """)
+    List<Object[]> countRdvParEmployeeParMois(@Param("annee") int annee);
 
     // Nombre de services total par cliente tous temps confondus (RDV terminés uniquement)
     @Query("""

@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import pfe.cb_management.dto.*;
 import pfe.cb_management.enums.Role;
 import pfe.cb_management.service.AuthService;
+import pfe.cb_management.service.StatsService;
 import pfe.cb_management.service.UserService;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -22,6 +24,7 @@ public class AdminController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final StatsService statsService;
 
     @PostMapping("/users")
     @Operation(summary = "Créer un compte employé ou réceptionniste")
@@ -66,5 +69,25 @@ public class AdminController {
     @Operation(summary = "Activer/Désactiver un compte")
     public ResponseEntity<UserDto> toggleActivation(@PathVariable Long id) {
         return ResponseEntity.ok(userService.toggleActivation(id));
+    }
+
+    // ── Statistiques ─────────────────────────────────────────────────────────
+
+    @GetMapping("/stats/rdv")
+    @Operation(summary = "RDV par employé par mois pour une année")
+    public ResponseEntity<List<StatsRdvEmployeeDto>> statsRdv(
+            @RequestParam(required = false) Integer annee) {
+        int a = (annee != null) ? annee : LocalDate.now().getYear();
+        return ResponseEntity.ok(statsService.getRdvParEmployeeParMois(a));
+    }
+
+    @GetMapping("/stats/presence")
+    @Operation(summary = "Présence par employé pour un mois/année")
+    public ResponseEntity<List<StatsPresenceEmployeeDto>> statsPresence(
+            @RequestParam(required = false) Integer mois,
+            @RequestParam(required = false) Integer annee) {
+        int m = (mois  != null) ? mois  : LocalDate.now().getMonthValue();
+        int a = (annee != null) ? annee : LocalDate.now().getYear();
+        return ResponseEntity.ok(statsService.getPresenceParEmployeeParMois(m, a));
     }
 }

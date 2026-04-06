@@ -22,8 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRoleNot(Role role);
 
     // ── Employés disponibles pour une spécialité et un créneau ──
-    // Un employé est occupé si un de ses services appartient à un rendez-vous
-    // dont le statut n'est pas ANNULE et dont l'horaire chevauche le créneau demandé.
+    // Un employé est occupé si son RDV est EN_ATTENTE, CONFIRME ou EN_COURS.
+    // Seuls ANNULE et TERMINE libèrent l'employé.
     @Query("""
             SELECT u FROM User u
             WHERE :specialite MEMBER OF u.specialites

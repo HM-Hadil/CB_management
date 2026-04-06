@@ -47,7 +47,7 @@ public class PresenceService {
                     .employeeId(emp.getId())
                     .employeeNom(emp.getNom())
                     .employeePrenom(emp.getPrenom())
-                    .employeeSpecialite(emp.getSpecialites() != null && !emp.getSpecialites().isEmpty() ? emp.getSpecialites().iterator().next().name() : null)
+                    .employeeSpecialite(emp.getSpecialites() != null && !emp.getSpecialites().isEmpty() ? emp.getSpecialites().iterator().next().getLabel() : null)
                     .date(date.toString())
                     .statut(StatutPresence.ABSENT)
                     .build();
@@ -111,7 +111,7 @@ public class PresenceService {
                 .employeeId(employee.getId())
                 .employeeNom(employee.getNom())
                 .employeePrenom(employee.getPrenom())
-                .employeeSpecialite(employee.getSpecialites() != null && !employee.getSpecialites().isEmpty() ? employee.getSpecialites().iterator().next().name() : null)
+                .employeeSpecialite(employee.getSpecialites() != null && !employee.getSpecialites().isEmpty() ? employee.getSpecialites().iterator().next().getLabel() : null)
                 .date(p.getDate().toString())
                 .heureArrivee(p.getHeureArrivee() != null ? p.getHeureArrivee().format(TIME_FMT) : null)
                 .heureDepart(p.getHeureDepart() != null ? p.getHeureDepart().format(TIME_FMT) : null)
