@@ -290,27 +290,33 @@ public class RendezVousService {
     // ── Mettre à jour le statut du RDV en fonction des services ─
     private void updateRendezVousStatutFromServices(RendezVous rdv) {
         List<StatutService> serviceStatuses = rdv.getServices().stream()
+                .filter(s -> s.getStatut() != StatutService.ANNULE)
                 .map(ServiceRendezVous::getStatut)
                 .toList();
 
+        // Si tous les services sont annulés
+        if (serviceStatuses.isEmpty()) {
+            rdv.setStatut(StatutRendezVous.ANNULE);
+            return;
+        }
+
         StatutRendezVous newRdvStatus;
 
-        if (serviceStatuses.stream().allMatch(s -> s == StatutService.ANNULE)) {
-            newRdvStatus = StatutRendezVous.ANNULE;
-        } else if (serviceStatuses.stream().allMatch(s -> s == StatutService.TERMINE)) {
+        if (serviceStatuses.stream().allMatch(s -> s == StatutService.TERMINE)) {
+            // Tous terminés → RDV terminé
             newRdvStatus = StatutRendezVous.TERMINE;
         } else if (serviceStatuses.stream().anyMatch(s -> s == StatutService.EN_COURS)) {
+            // Au moins un en cours → RDV en cours
             newRdvStatus = StatutRendezVous.EN_COURS;
-        } else if (serviceStatuses.stream().allMatch(s -> s == StatutService.CONFIRME || s == StatutService.EN_ATTENTE)) {
-            // Si tous sont CONFIRME ou EN_ATTENTE, et au moins un CONFIRME
-            if (serviceStatuses.stream().anyMatch(s -> s == StatutService.CONFIRME)) {
-                newRdvStatus = StatutRendezVous.CONFIRME;
-            } else {
-                newRdvStatus = StatutRendezVous.EN_ATTENTE;
-            }
+        } else if (serviceStatuses.stream().anyMatch(s -> s == StatutService.TERMINE)) {
+            // Certains terminés, d'autres encore confirmés → travail commencé → en cours
+            newRdvStatus = StatutRendezVous.EN_COURS;
+        } else if (serviceStatuses.stream().anyMatch(s -> s == StatutService.CONFIRME)) {
+            // Tous confirmés ou en attente, au moins un confirmé
+            newRdvStatus = StatutRendezVous.CONFIRME;
         } else {
-            // Statuts mixtes - garder le statut actuel ou EN_COURS si nécessaire
-            newRdvStatus = rdv.getStatut();
+            // Tous en attente
+            newRdvStatus = StatutRendezVous.EN_ATTENTE;
         }
 
         rdv.setStatut(newRdvStatus);
