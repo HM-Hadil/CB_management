@@ -24,6 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // ── Employés disponibles pour une spécialité et un créneau ──
     // Un employé est occupé si son RDV est EN_ATTENTE, CONFIRME ou EN_COURS.
     // Seuls ANNULE et TERMINE libèrent l'employé.
+    // On utilise COALESCE(srv.datePrevue, r.dateDebut) pour respecter le timing propre
+    // à chaque service (cas mariée avec services à des dates différentes du RDV global).
     @Query("""
             SELECT u FROM User u
             WHERE :specialite MEMBER OF u.specialites
@@ -31,9 +33,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
               AND u.activated = true
               AND u.id NOT IN (
                   SELECT srv.employee.id FROM ServiceRendezVous srv
-                  WHERE srv.rendezVous.statut NOT IN ('ANNULE', 'TERMINE')
-                    AND srv.rendezVous.dateDebut < :dateFin
-                    AND srv.rendezVous.dateFin  > :dateDebut
+                  WHERE srv.employee IS NOT NULL
+                    AND srv.rendezVous.statut NOT IN ('ANNULE', 'TERMINE')
+                    AND COALESCE(srv.datePrevue, srv.rendezVous.dateDebut) < :dateFin
+                    AND TIMESTAMPADD(MINUTE,
+                          COALESCE(srv.dureeService, srv.rendezVous.dureeMinutes),
+                          COALESCE(srv.datePrevue, srv.rendezVous.dateDebut)) > :dateDebut
               )
             """)
     List<User> findAvailableEmployees(

@@ -63,10 +63,37 @@ public class RendezVousService {
     }
 
     private void validateEmployeeAvailability(RendezVousRequest request, Long excludeRdvId) {
-        // Cache existing services per employee to avoid repeated DB calls.
+        List<ServiceRendezVousRequest> services = request.getServices();
+
+        // ── 1. Conflits intra-requête (deux services du même RDV pour le même employé) ──
+        for (int i = 0; i < services.size(); i++) {
+            for (int j = i + 1; j < services.size(); j++) {
+                var a = services.get(i);
+                var b = services.get(j);
+                if (a.getEmployeeId() == null || !a.getEmployeeId().equals(b.getEmployeeId())) continue;
+
+                LocalDateTime aStart = a.getDatePrevue() != null ? a.getDatePrevue() : request.getDateDebut();
+                int aDuree = a.getDureeService() != null ? a.getDureeService() : request.getDureeMinutes();
+                LocalDateTime aEnd = aStart.plusMinutes(aDuree);
+
+                LocalDateTime bStart = b.getDatePrevue() != null ? b.getDatePrevue() : request.getDateDebut();
+                int bDuree = b.getDureeService() != null ? b.getDureeService() : request.getDureeMinutes();
+                LocalDateTime bEnd = bStart.plusMinutes(bDuree);
+
+                if (aStart.isBefore(bEnd) && bStart.isBefore(aEnd)) {
+                    User employee = userRepository.findById(a.getEmployeeId())
+                            .orElseThrow(() -> new RuntimeException("Employé introuvable."));
+                    throw new RuntimeException("Conflit : l'employé " + employee.getNom() + " " + employee.getPrenom() +
+                            " est assigné à deux services qui se chevauchent dans ce rendez-vous (" +
+                            aStart + " - " + aEnd + " et " + bStart + " - " + bEnd + ").");
+                }
+            }
+        }
+
+        // ── 2. Conflits avec les services existants en base ──
         var existingServicesCache = new java.util.HashMap<Long, List<ServiceRendezVous>>();
 
-        for (var srv : request.getServices()) {
+        for (var srv : services) {
             if (srv.getEmployeeId() == null) continue;
 
             User employee = userRepository.findById(srv.getEmployeeId())
@@ -89,8 +116,7 @@ public class RendezVousService {
                         : existing.getRendezVous().getDureeMinutes();
                 LocalDateTime existingEnd = existingStart.plusMinutes(existingDuration);
 
-                boolean overlap = srvStart.isBefore(existingEnd) && existingStart.isBefore(srvEnd);
-                if (overlap) {
+                if (srvStart.isBefore(existingEnd) && existingStart.isBefore(srvEnd)) {
                     throw new RuntimeException("L'employé " + employee.getNom() + " " + employee.getPrenom() +
                             " est déjà occupé du " + existingStart + " au " + existingEnd + ".");
                 }
@@ -176,6 +202,11 @@ public class RendezVousService {
             throw new RuntimeException("Impossible de commencer un rendez-vous annulé.");
         }
         rdv.setStatut(StatutRendezVous.EN_COURS);
+        // Passer les services CONFIRME de cet employé à EN_COURS
+        rdv.getServices().stream()
+                .filter(s -> s.getEmployee() != null && s.getEmployee().getId().equals(employee.getId())
+                        && s.getStatut() == StatutService.CONFIRME)
+                .forEach(s -> s.setStatut(StatutService.EN_COURS));
         return toResponse(rendezVousRepository.save(rdv));
     }
 
@@ -240,8 +271,8 @@ public class RendezVousService {
         if (!service.getEmployee().getId().equals(employee.getId())) {
             throw new RuntimeException("Ce service ne vous est pas assigné.");
         }
-        if (service.getStatut() != StatutService.EN_COURS) {
-            throw new RuntimeException("Seul un service en cours peut être terminé.");
+        if (service.getStatut() != StatutService.EN_COURS && service.getStatut() != StatutService.CONFIRME) {
+            throw new RuntimeException("Seul un service confirmé ou en cours peut être terminé.");
         }
 
         service.setStatut(StatutService.TERMINE);
